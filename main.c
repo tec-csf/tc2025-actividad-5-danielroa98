@@ -13,11 +13,18 @@
 
 void manual();
 
+typedef struct{
+    int childPID;
+    char * witness;
+}ring;
+
 int main(int argc, char * const *argv){
     
     char * numberVal = NULL;
-    int dat, updateValue = 0, man = 0;
+    int dat, updateValue = 0, man = 0, tuberia[2], cont=0;
     pid_t pid;
+
+    pipe(tuberia);
 
     while ((dat = getopt(argc, argv, "n:m")) != -1)
     {
@@ -59,7 +66,16 @@ int main(int argc, char * const *argv){
     
     if(man == 1){
         manual();
-    }else
+    }
+
+    pid_t * procs = malloc(sizeof(pid_t)*updateValue);
+    int * procsTot = procs + updateValue;
+    int * contProcs = procs;
+
+    while((contProcs < procsTot) && (cont < updateValue)){
+        pid = fork();
+        *contProcs = pid;
+    }
 
     return 0;
 }
