@@ -4,7 +4,9 @@
  * 
  *  Daniel Roa
  *  A01021960
- */ 
+ * 
+ *  Este ejercicio se trabajó con Sergio Hernández
+ */
 #include <ctype.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -13,18 +15,14 @@
 
 void manual();
 
-typedef struct{
-    int childPID;
-    char * witness;
-}ring;
+int main(int argc, char *const *argv)
+{
 
-int main(int argc, char * const *argv){
-    
-    char * numberVal = NULL;
-    int dat, updateValue = 0, man = 0, tuberia[2], cont=0;
+    char *numberVal = NULL;
+    int dat, updateValue = 0, man = 0, cont = 0, childCount = 0, contExit, darth = 0;
     pid_t pid;
-
-    pipe(tuberia);
+    char witness = 'T';
+    char wBoys;
 
     while ((dat = getopt(argc, argv, "n:m")) != -1)
     {
@@ -33,27 +31,44 @@ int main(int argc, char * const *argv){
         case 'n':
             numberVal = optarg;
 
-            if(isdigit(*numberVal) > 0){
+            if (isdigit(*numberVal) > 0)
+            {
                 updateValue = atoi(numberVal);
 
-                printf("Se van a crear %d procesos\n\n", updateValue);
-            }else{
+                if (updateValue > 0)
+                {
+                    printf("Se van a crear %d procesos\n\n", updateValue);
+                }
+                else if (updateValue == 0)
+                {
+                    printf("Inserte un valor mayor a %d\n", updateValue);
+                    exit(0);
+                }
+            }
+            else
+            {
                 printf("Inserte un valor numerico valido.\n");
             }
 
             break;
-        
+
         case 'm':
-            man = 1;
+
+            manual();
+
             break;
 
         case '?':
-            if (optopt == 'n'){
+            if (optopt == 'n')
+            {
                 fprintf(stderr, "Inserte un argumento a la opción -%c\n", optopt);
             }
-            else if (isprint(optopt)){
+            else if (isprint(optopt))
+            {
                 fprintf(stderr, "La opción -%c no es válida.\n", optopt);
-            }else{
+            }
+            else
+            {
                 fprintf(stderr, "Opción desconocida '\\x%x'.", optopt);
             }
 
@@ -61,26 +76,77 @@ int main(int argc, char * const *argv){
 
         default:
             abort();
-        }   
-    }
-    
-    if(man == 1){
-        manual();
+        }
     }
 
-    pid_t * procs = malloc(sizeof(pid_t)*updateValue);
-    int * procsTot = procs + updateValue;
-    int * contProcs = procs;
+    int *pipeline = (int *)malloc(sizeof(int) * (updateValue * 2));
 
-    while((contProcs < procsTot) && (cont < updateValue)){
-        pid = fork();
-        *contProcs = pid;
+    for (; cont < updateValue; ++cont)
+    {
+        pipe((pipeline + (2 * cont)));
     }
+
+    childCount = 1;
+
+    for (; childCount <= updateValue; ++childCount)
+    {
+        if (childCount <= updateValue)
+        {
+            pid = fork();
+
+            if (pid == -1)
+            {
+
+                printf("Hubo un error al crear el proceso hijo %d.\n", childCount);
+            }
+            else if (pid == 0)
+            {
+
+                close(*(pipeline + (childCount * 2 - 1)));
+                read(*(pipeline + (childCount * 2 - 2)), &wBoys, sizeof(char));
+
+                printf("—-> Soy el proceso con PID %d y recibí el testigo %c, el cual tendré por 5 segundos.\n", getpid(), wBoys);
+
+                sleep(5);
+
+                close(*(pipeline + (childCount * 2)));
+                write(*(pipeline + (childCount * 2 + 1)), &wBoys, sizeof(char));
+
+                printf("<-- Soy el proceso con PID %d y acabo de enviar el testigo %c.\n", getpid(), wBoys);
+            }
+            else
+            {
+
+                if (childCount == 1)
+                {
+                    close(*(pipeline));
+                    write(*(pipeline + 1), &witness, sizeof(char));
+
+                    printf("<-- Soy el proceso padre (%d) y envié el testigo %c.\n", getpid(), witness);
+
+                    darth= getpid();
+                }
+                break;
+            }
+        }
+        else if (cont == updateValue + 1)
+        {
+            close(*(pipeline + (2 * contExit - 1)));
+            read(*(pipeline + (2 * contExit - 2)), &wBoys, sizeof(char));
+
+            printf("--> Soy el proceso padre (%d) y recibí el testigo %c.\n", darth, wBoys);
+        }
+    }
+
+    waitpid(pid, NULL, 0);
+
+    free(pipeline);
 
     return 0;
 }
 
-void manual(){
+void manual()
+{
     printf("Usage: ./a.out <options> <numeric value>\n");
     printf("The possible options are:\n");
     printf("-n\t\tAllows user to input a number in the numeric value field\n-m\t\tAllows the user to view this manual.\n");
