@@ -19,7 +19,7 @@ int main(int argc, char *const *argv)
 {
 
     char *numberVal = NULL;
-    int dat, updateValue = 0, man = 0, cont = 0, childCount = 0, contExit, darth = 0;
+    int dat, updateValue = 0, man = 0, cont = 0, childCount = 0, contExit = 1, darth;
     pid_t pid;
     char witness = 'T';
     char wBoys;
@@ -88,7 +88,7 @@ int main(int argc, char *const *argv)
 
     childCount = 1;
 
-    for (; childCount <= updateValue; ++childCount)
+    for (; childCount <= updateValue + 1; ++childCount)
     {
         if (childCount <= updateValue)
         {
@@ -98,21 +98,33 @@ int main(int argc, char *const *argv)
             {
 
                 printf("Hubo un error al crear el proceso hijo %d.\n", childCount);
+                break;
             }
             else if (pid == 0)
             {
 
-                close(*(pipeline + (childCount * 2 - 1)));
-                read(*(pipeline + (childCount * 2 - 2)), &wBoys, sizeof(char));
+                close(*(pipeline + (2 * childCount - 1)));
+                read(*(pipeline + (2 * childCount - 2)), &wBoys, sizeof(char));
 
                 printf("—-> Soy el proceso con PID %d y recibí el testigo %c, el cual tendré por 5 segundos.\n", getpid(), wBoys);
 
-                sleep(5);
+                sleep(1);
 
-                close(*(pipeline + (childCount * 2)));
-                write(*(pipeline + (childCount * 2 + 1)), &wBoys, sizeof(char));
+                if (childCount == updateValue)
+                {
 
-                printf("<-- Soy el proceso con PID %d y acabo de enviar el testigo %c.\n", getpid(), wBoys);
+                    close(*(pipeline));
+                    write(*(pipeline + 1), &wBoys, sizeof(char));
+
+                    printf("<-- Soy el proceso con PID %d y acabo de enviar el testigo %c.\n", getpid(), wBoys);
+                }
+                else
+                {
+                    close(*(pipeline + (2 * childCount)));
+                    write(*(pipeline + 1), &wBoys, sizeof(char));
+
+                    printf("<-- Soy el proceso con PID %d y acabo de enviar el testigo %c.\n", getpid(), wBoys);
+                }
             }
             else
             {
@@ -124,17 +136,21 @@ int main(int argc, char *const *argv)
 
                     printf("<-- Soy el proceso padre (%d) y envié el testigo %c.\n", getpid(), witness);
 
-                    darth= getpid();
+                    darth = getpid();
+                    //printf("%d\n", darth[0]);
                 }
-                break;
+                    break;
+                
             }
         }
-        else if (cont == updateValue + 1)
+        else if (childCount == updateValue + 1)
         {
             close(*(pipeline + (2 * contExit - 1)));
             read(*(pipeline + (2 * contExit - 2)), &wBoys, sizeof(char));
 
-            printf("--> Soy el proceso padre (%d) y recibí el testigo %c.\n", darth, wBoys);
+            printf("--> Soy el proceso padre %d y recibí el testigo %c.\n", darth, wBoys);
+            
+            
         }
     }
 
