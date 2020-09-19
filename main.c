@@ -108,7 +108,7 @@ int main(int argc, char *const *argv)
 
             printf("—-> Soy el proceso con PID %d y recibí el testigo %c, el cual tendré por 5 segundos.\n", getpid(), wBoys);
 
-            sleep(1);
+            sleep(5);
 
             if (childCount == updateValue)
             {
