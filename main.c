@@ -79,7 +79,9 @@ int main(int argc, char *const *argv)
         }
     }
 
-    int *pipeline = (int *)malloc(sizeof(int) * (updateValue * 2));
+    updateValue--;
+
+    int *pipeline = (int *)malloc(sizeof(int[2]) * (updateValue * 2));
 
     for (; cont < updateValue; ++cont)
     {
@@ -88,69 +90,61 @@ int main(int argc, char *const *argv)
 
     childCount = 1;
 
-    for (; childCount <= updateValue + 1; ++childCount)
+    for (; childCount <= updateValue; ++childCount)
     {
-        if (childCount <= updateValue)
+        pid = fork();
+
+        if (pid == -1)
         {
-            pid = fork();
 
-            if (pid == -1)
-            {
+            printf("Hubo un error al crear el proceso hijo %d.\n", childCount);
+            break;
+        }
+        else if (pid == 0)
+        {
 
-                printf("Hubo un error al crear el proceso hijo %d.\n", childCount);
-                break;
-            }
-            else if (pid == 0)
+            close(*(pipeline + (2 * childCount - 1)));
+            read(*(pipeline + (2 * childCount - 2)), &wBoys, sizeof(char));
+
+            printf("—-> Soy el proceso con PID %d y recibí el testigo %c, el cual tendré por 5 segundos.\n", getpid(), wBoys);
+
+            sleep(1);
+
+            if (childCount == updateValue)
             {
 
                 close(*(pipeline + (2 * childCount - 1)));
-                read(*(pipeline + (2 * childCount - 2)), &wBoys, sizeof(char));
+                write(*(pipeline + (2 * updateValue - 2)), &wBoys, sizeof(char));
 
-                printf("—-> Soy el proceso con PID %d y recibí el testigo %c, el cual tendré por 5 segundos.\n", getpid(), wBoys);
-
-                sleep(1);
-
-                if (childCount == updateValue)
-                {
-
-                    close(*(pipeline));
-                    write(*(pipeline + 1), &wBoys, sizeof(char));
-
-                    printf("<-- Soy el proceso con PID %d y acabo de enviar el testigo %c.\n", getpid(), wBoys);
-                }
-                else
-                {
-                    close(*(pipeline + (2 * childCount)));
-                    write(*(pipeline + 1), &wBoys, sizeof(char));
-
-                    printf("<-- Soy el proceso con PID %d y acabo de enviar el testigo %c.\n", getpid(), wBoys);
-                }
+                printf("<-- Soy el proceso con PID %d y acabo de enviar el testigo %c.\n", getpid(), wBoys);
             }
             else
             {
+                close(*(pipeline + (2 * childCount)));
+                write(*(pipeline + (2 * childCount) + 1), &wBoys, sizeof(char));
 
-                if (childCount == 1)
-                {
-                    close(*(pipeline));
-                    write(*(pipeline + 1), &witness, sizeof(char));
-
-                    printf("<-- Soy el proceso padre (%d) y envié el testigo %c.\n", getpid(), witness);
-
-                    darth = getpid();
-                    //printf("%d\n", darth[0]);
-                }
-                    break;
-                
+                printf("<-- Soy el proceso con PID %d y acabo de enviar el testigo %c.\n", getpid(), wBoys);
             }
         }
-        else if (childCount == updateValue + 1)
+        else
         {
-            close(*(pipeline + (2 * contExit - 1)));
-            read(*(pipeline + (2 * contExit - 2)), &wBoys, sizeof(char));
 
-            printf("--> Soy el proceso padre %d y recibí el testigo %c.\n", darth, wBoys);
-            
-            
+            if (childCount == 1)
+            {
+                close(*(pipeline));
+                write(*(pipeline + 1), &witness, sizeof(char));
+
+                printf("<-- Soy el proceso origen %d y envié el testigo %c.\n", getpid(), witness);
+
+                wait(NULL);
+                close(*(pipeline + (2 * updateValue - 1)));
+                read(*(pipeline + (2 * updateValue - 2)), &wBoys, sizeof(char));
+
+                printf("--> Soy el proceso origen %d y recibí el testigo %c.\n", getpid(), wBoys);
+                sleep(5);
+                //printf("%d\n", darth[0]);
+            }
+            break;
         }
     }
 
